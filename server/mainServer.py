@@ -1,38 +1,44 @@
 from flask import Flask, request, jsonify
 import urllib.request
+import re
 from html2object import parser
 
 app = Flask(__name__)
+
+regex = re.compile(
+    r'^(?:http|ftp)s?://'  # http:// or https://
+    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
+    r'localhost|'  # localhost...
+    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+    r'(?::\d+)?'  # optional port
+    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 
 @app.route('/analyse')
 def analyse():
     url = request.args.get('url', default="")
-
-    if url:
-        html = get_html_as_string(url)
+    valid_url = regex.search(url)
+    if url and valid_url:
+        try:
+            html = get_html_as_string(url)
+        except FileNotFoundError:
+            return "Url ont found", 404
         parsed = parser.parsehtml(html)
-        print(parsed)
         return jsonify(parsed)
     else:
         return "400", 400
 
 
 def get_html_as_string(url):
-    opener = urllib.request.FancyURLopener({})
-    # url = "http://stackoverflow.com/"
-    url = url
-    f = opener.open(url)
-    content = f.read()
-    return content
-
-
-# def test():
-#     opener = urllib.request.FancyURLopener({})
-#     url = "http://stackoverflow.com/"
-#     f = opener.open(url)
-#     content = f.read()
-#     return content
+    try:
+        opener = urllib.request.FancyURLopener({})
+        # url = "http://stackoverflow.com/"
+        url = url
+        f = opener.open(url)
+        content = f.read()
+        return content.decode('utf-8')
+    except Exception:
+        raise FileNotFoundError
 
 
 if __name__ == '__main__':
