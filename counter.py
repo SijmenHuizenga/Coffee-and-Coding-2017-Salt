@@ -19,7 +19,7 @@ list = dict.items()
 for key,value in dict.iems():
 	file1.write("%s:%s\n" %(key,value))
 
-
+file1.close()
 
 
 
