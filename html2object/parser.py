@@ -1,4 +1,7 @@
 import re
+
+mostusedwords = ["the", "be", "to", "of", "and", "a", "in", "that", "have", "I", "it", "for", "not", "on", "with", "he", "as", "you", "do", "at", "this", "but", "his", "by", "from", "they", "we", "say", "her", "she", "or", "an", "will", "my", "one", "all", "would", "there", "their", "what", "so", "up", "out", "if", "about", "who", "get", "which", "go", "me", "when", "make", "can", "like", "time", "no", "just", "him", "know", "take", "people", "into", "year", "your", "good", "some", "could", "them", "see", "other", "than", "then", "now", "look", "only", "come", "its", "over", "think", "also", "back", "after", "use", "two", "how", "our", "work", "first", "well", "way", "even", "new", "want", "because", "any", "these", "give", "day", "most", "us"]
+
 try:
     # Python 2.6-2.7
     from HTMLParser import HTMLParser
@@ -9,30 +12,73 @@ htmler = HTMLParser()
 
 
 def parsehtml(html):
-    bodies = find_tags_content(html, "body")
+    htmlbody = find_body(html)  # find the body
+    cleanedbody = remove_nontext_arias(htmlbody)  # remove things like scripts and style things
+    tags = find_usefull_tags(cleanedbody)  # gives (name, props, body)
+
+    title = None
+    paragraphs = []
+
+    for tag in tags:
+        if title is None:
+            if tag[0] == "p":
+                continue
+            if tag[0] == "h1" or tag[0] == "h2":
+                title = tag[2]
+                continue
+        if len(paragraphs) != 0 and (tag[0] == "h1" or tag[0] == "h2" or tag[0] == "h3"):
+            break
+        paragraphs.append(tag[2])
+    return title, paragraphs
+
+
+def find_body(html):
+    bodies = find_tags(html, ["body"])
     if len(bodies) == 0:
         raise ValueError('No body tag found')
-    html = bodies[0]
+    return bodies[0][2]
 
+
+def remove_nontext_arias(html):
     html = html.replace("\r", "\n")
     html = re.sub(r"[\s]+", " ", html)
 
     html = dolooped(remove_everything_between, html, "<!--", "-->")
     html = dolooped(remove_everything_between, html, "<script", "</script>")
     html = dolooped(remove_everything_between, html, "<style", "</style>")
+    return html
 
-    for p in find_tags_content(html, "p"):
-        if containstag(p, "div") or containstag(p, "input") or containstag(p, "textarea") or re.match(r"^[\d\s]*$", p):
-            continue
-        p = remove_tags(p).strip()
-        if " " not in p:
-            continue
-        p = htmler.unescape(p)  # to get rid of   &#8216;
-        print(p)
 
-    return (
-        "Title", ["paragraaf", "paragraaf"]
-    )
+def find_usefull_tags(html):
+    out = []
+    for tag in find_tags(html, ["p", "h1", "h2", "h3", "h4"]):
+        tagname = tag[0]
+        tagprops = tag[1]
+        tagbody = tag[2]
+        if tagname == "p" and (
+                            containstag(tagbody, "div")
+                        or containstag(tagbody, "input")
+                    or containstag(tagbody, "textarea")
+                or re.match(r"^[\d\s]*$", tagbody)
+        ):
+            continue
+
+        tagbody = remove_tags(tagbody).strip().lower()
+        if " " not in tagbody:
+            continue
+
+        if not contains_usefull_word(tagbody):
+            continue
+
+        out.append((tagname, tagprops, htmler.unescape(tagbody)))
+    return out
+
+
+def contains_usefull_word(text):
+    for w in mostusedwords:
+        if " " + w + " " in text:
+            return True
+    return False
 
 
 def dolooped(func, *args):
@@ -50,34 +96,50 @@ def remove_everything_between(text: str, leftneedle: str, rightneedle: str):
     if leftstart == -1:
         return text
 
-    rightstart = text.find(rightneedle, leftstart+len(leftneedle))
+    rightstart = text.find(rightneedle, leftstart + len(leftneedle))
 
     if rightstart == -1:
         return text
 
-    return text[:leftstart]+text[rightstart+len(rightneedle):]
+    return text[:leftstart] + text[rightstart + len(rightneedle):]
 
 
-def find_tags_content(text, tagname):
-    leftneedle = re.compile("<"+tagname+"[^>]*>")
-    rightneedle = re.compile("<\/"+tagname+">")
-
+def find_tags(text, tags):
     index = 0
     out = []
 
     while index < len(text):
         searchtext = text[index:]
-        leftsearch = re.search(leftneedle, searchtext)
-        if leftsearch is None:
+
+        searches = []
+
+        for tagname in tags:
+            leftneedle = re.compile("<" + tagname + "([^>])*>")
+            rightneedle = re.compile("<\/" + tagname + ">")
+
+            leftsearch = re.search(leftneedle, searchtext)
+            if leftsearch is None:
+                continue
+
+            rightsearch = re.search(rightneedle, searchtext[leftsearch.end():])
+
+            if rightsearch is None:
+                continue
+            searches.append((tagname, leftsearch, rightsearch))
+        if len(searches) == 0:
             break
+        searches.sort(key= lambda x: x[1].start())
 
-        rightsearch = re.search(rightneedle, searchtext[leftsearch.end():])
+        tagname = searches[0][0]
+        leftsearch = searches[0][1]
+        rightsearch = searches[0][2]
 
-        if rightsearch is None:
-            break
-
-        out.append(searchtext[leftsearch.end():leftsearch.end()+rightsearch.start()])
-        index += leftsearch.end()+rightsearch.end()
+        out.append((
+            tagname,
+            leftsearch.group(1),
+            searchtext[leftsearch.end():leftsearch.end() + rightsearch.start()]
+        ))
+        index += leftsearch.end() + rightsearch.end()
     return out
 
 
@@ -86,13 +148,13 @@ def containstag(text, tagname):
 
 
 def contains_simpletag(text, tagname):
-    regexr = re.compile("<"+tagname+"[^\/]+\/>")
+    regexr = re.compile("<" + tagname + "[^\/]+\/>")
     return re.search(regexr, text) is not None
 
 
 def contains_fulltag(text, tagname):
-    leftneedle = re.compile("<"+tagname+"[^>]*>")
-    rightneedle = re.compile("<\/"+tagname+">")
+    leftneedle = re.compile("<" + tagname + "[^>]*>")
+    rightneedle = re.compile("<\/" + tagname + ">")
 
     leftsearch = re.search(leftneedle, text)
     if leftsearch is None:
@@ -108,9 +170,13 @@ def contains_fulltag(text, tagname):
 def remove_tags(text):
     return re.sub(r"<[^>]+>", "", text)
 
+
 # testing code
 with open('example.html', 'r') as myfile:
     data = myfile.read()
-parsehtml(data)
+(t, p) = parsehtml(data)
+print("TITLE: " + t)
+for line in p:
+    print(line)
 
 # parsehtml("123<!-- this is the app -->456<style>   </style>789")
