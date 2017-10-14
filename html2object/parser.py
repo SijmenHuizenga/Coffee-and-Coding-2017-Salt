@@ -12,7 +12,11 @@ htmler = HTMLParser()
 
 
 def parsehtml(html):
-    htmlbody = find_body(html)  # find the body
+    try:
+        htmlbody = find_body(html)  # find the body
+    except ValueError as e:
+        raise ValueError(e)
+
     cleanedbody = remove_nontext_arias(htmlbody)  # remove things like scripts and style things
     tags = find_usefull_tags(cleanedbody)  # gives (name, props, body)
 
@@ -172,11 +176,11 @@ def remove_tags(text):
 
 
 # testing code
-with open('example.html', 'r') as myfile:
-    data = myfile.read()
-(t, p) = parsehtml(data)
-print("TITLE: " + t)
-for line in p:
-    print(line)
+# with open('example.html', 'r') as myfile:
+#     data = myfile.read()
+# (t, p) = parsehtml(data)
+# print("TITLE: " + t)
+# for line in p:
+#     print(line)
 
 # parsehtml("123<!-- this is the app -->456<style>   </style>789")
