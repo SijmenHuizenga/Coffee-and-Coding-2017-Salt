@@ -1,28 +1,65 @@
+import re
+
+
 def parsehtml(html):
+    html = get_everything_between_two_needles(html, re.compile("<body[^>]*>"), re.compile("<\/body>"))
+    if html == -1:
+        raise ValueError('No body tag found')
+
+    html = html.replace("\r", "\n")
+    html = re.sub(r"[\s]+", " ", html)
+
+    html = dolooped(remove_everything_between, html, "<!--", "-->")
+    html = dolooped(remove_everything_between, html, "<script", "</script>")
+    html = dolooped(remove_everything_between, html, "<style", "</style>")
+
+    print(html)
     return (
-        "Jongeren delen massaal wraakporno nu het nog mag",
-        [
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla et dignissim dui. Ut dictum nunc mattis est "
-            "maximus, eu dictum magna laoreet. Vivamus condimentum, enim fermentum consectetur sodales, justo sem iaculis "
-            "ante, quis facilisis orci justo vel diam. Maecenas nec velit lectus. Vestibulum sagittis volutpat enim non "
-            "maximus. Etiam consequat pellentesque tellus, nec pulvinar nunc gravida a. Ut ornare metus ut dolor pretium "
-            "pretium. Curabitur accumsan risus a arcu malesuada tempor. Vestibulum eget mauris id mi aliquam consequat nec "
-            "a lorem. Suspendisse pellentesque nec mauris eget tincidunt. Phasellus ac ipsum vitae felis malesuada congue vitae vel purus.",
-
-            "Sed augue nisl, tempor in nisl id, tempor volutpat turpis. Donec accumsan volutpat diam sit amet condimentum. "
-            "Donec gravida mi et massa pretium congue. Nullam ornare erat ac turpis porttitor porta. Aenean porttitor vestibulum"
-            " rutrum. Sed elementum vitae dolor sit amet convallis. Mauris dolor turpis, vulputate ultricies nisi ut, ornare"
-            " tempus urna. Morbi risus odio, luctus sit amet viverra sit amet, sollicitudin eget ligula. Sed a diam iaculis,"
-            " porttitor lectus vel, tempor massa. In ligula mi, ultrices ut dui at, sodales scelerisque mauris. Proin "
-            "fermentum commodo tempus.",
-
-            "Nullam semper pulvinar diam ut scelerisque. Donec ex libero, venenatis eget suscipit ac, maximus at risus. "
-            "Aenean felis lorem, semper egestas molestie nec, congue eu neque. Fusce pellentesque tincidunt faucibus. Donec "
-            "porttitor, nunc eu vehicula blandit, tortor massa posuere ligula, eget dictum velit eros eu est. Sed tincidunt"
-            " lorem suscipit, pellentesque nisl vitae, gravida leo. Curabitur interdum nulla ipsum, quis egestas nisl iaculis"
-            " ut. Integer a nunc vitae dolor eleifend ultrices non eget nibh. Aenean eget pellentesque ipsum.",
-        ]
+        "Title", ["paragraaf", "paragraaf"]
     )
 
 
-parsehtml("test")
+def dolooped(func, *args):
+    while True:
+        new = func(*args)
+        if args[0] == new:
+            return new
+        lst = list(args)
+        lst[0] = new
+        args = tuple(lst)
+
+
+def remove_everything_between(text: str, leftneedle: str, rightneedle: str):
+    leftstart = text.find(leftneedle)
+    if leftstart == -1:
+        return text
+
+    rightstart = text.find(rightneedle, leftstart+len(leftneedle))
+
+    if rightstart == -1:
+        return text
+
+    return text[:leftstart]+text[rightstart+len(rightneedle):]
+
+
+def get_everything_between_two_needles(text, leftneedle, rightneedle):
+    leftsearch = re.search(leftneedle, text)
+    if leftsearch is None:
+        print("left not found")
+        return None
+
+    rightsearch = re.search(rightneedle, text)
+
+    if rightsearch is None:
+        print("right not found")
+        return None
+
+    return text[leftsearch.end():rightsearch.start()]
+
+
+# testing code
+with open('example.html', 'r') as myfile:
+    data = myfile.read()
+parsehtml(data)
+
+# parsehtml("123<!-- this is the app -->456<style>   </style>789")
