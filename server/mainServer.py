@@ -1,4 +1,6 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
+import urllib.request
+from html2object import parser
 
 app = Flask(__name__)
 
@@ -8,10 +10,30 @@ def analyse():
     url = request.args.get('url', default="")
 
     if url:
-        return url
+        html = get_html_as_string(url)
+        parsed = parser.parsehtml(html)
+        print(parsed)
+        return jsonify(parsed)
     else:
         return "400", 400
 
 
-if __name__ == "__main__":
+def get_html_as_string(url):
+    opener = urllib.request.FancyURLopener({})
+    # url = "http://stackoverflow.com/"
+    url = url
+    f = opener.open(url)
+    content = f.read()
+    return content
+
+
+# def test():
+#     opener = urllib.request.FancyURLopener({})
+#     url = "http://stackoverflow.com/"
+#     f = opener.open(url)
+#     content = f.read()
+#     return content
+
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3000)
