@@ -12,7 +12,11 @@ htmler = HTMLParser()
 
 
 def parsehtml(html):
-    htmlbody = find_body(html)  # find the body
+    try:
+        htmlbody = find_body(html)  # find the body
+    except ValueError as e:
+        raise ValueError(e)
+
     cleanedbody = remove_nontext_arias(htmlbody)  # remove things like scripts and style things
     tags = find_usefull_tags(cleanedbody)  # gives (name, props, body)
 

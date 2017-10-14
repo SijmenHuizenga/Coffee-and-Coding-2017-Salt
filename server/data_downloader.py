@@ -1,6 +1,9 @@
 import re
 import urllib.request
 import socket
+import glob
+from html2object import parser
+
 socket.setdefaulttimeout(3)
 
 csv_link = 'csr2'
@@ -34,6 +37,38 @@ def start():
                 index = index + 1
 
 
+def read_html():
+    html_files = glob.glob("./data/*.html")
+    index = 1
+
+    for path in html_files:
+        file = open(path)
+        read = file.read()
+        try:
+            parsed = parser.parsehtml(read)
+        except ValueError as e:
+            print(e)
+            continue
+
+        if parsed:
+            string = ""
+            # str(parsed[0])
+            for s in parsed[1]:
+                string += s
+
+            if string is not "" or string is not "NoneNone":
+                writer = open('./text/' + str(index) + '.txt', 'a+')
+                writer.write(string)
+            else:
+                print("Empty index " + str(index))
+        index = index + 1
+
+        # except Exception as e:
+        #     print('something went wrong')
+
+
+read_html()
+
 # writer = open('./data/test.html', 'a+')
 # writer.write("wri")
-start()
+# start()
