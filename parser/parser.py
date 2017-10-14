@@ -2,9 +2,10 @@ import re
 
 
 def parsehtml(html):
-    html = get_everything_between_two_needles(html, re.compile("<body[^>]*>"), re.compile("<\/body>"))
-    if html == -1:
+    bodies = find_tags_content(html, "body")
+    if len(bodies) == 0:
         raise ValueError('No body tag found')
+    html = bodies[0]
 
     html = html.replace("\r", "\n")
     html = re.sub(r"[\s]+", " ", html)
@@ -13,7 +14,11 @@ def parsehtml(html):
     html = dolooped(remove_everything_between, html, "<script", "</script>")
     html = dolooped(remove_everything_between, html, "<style", "</style>")
 
+    for p in find_tags_content(html, "p"):
+        print(p)
+
     print(html)
+
     return (
         "Title", ["paragraaf", "paragraaf"]
     )
@@ -42,19 +47,27 @@ def remove_everything_between(text: str, leftneedle: str, rightneedle: str):
     return text[:leftstart]+text[rightstart+len(rightneedle):]
 
 
-def get_everything_between_two_needles(text, leftneedle, rightneedle):
-    leftsearch = re.search(leftneedle, text)
-    if leftsearch is None:
-        print("left not found")
-        return None
+def find_tags_content(text, tagname):
+    leftneedle = re.compile("<"+tagname+"[^>]*>")
+    rightneedle = re.compile("<\/"+tagname+">")
 
-    rightsearch = re.search(rightneedle, text)
+    index = 0
+    out = []
 
-    if rightsearch is None:
-        print("right not found")
-        return None
+    while index < len(text):
+        searchtext = text[index:]
+        leftsearch = re.search(leftneedle, searchtext)
+        if leftsearch is None:
+            break
 
-    return text[leftsearch.end():rightsearch.start()]
+        rightsearch = re.search(rightneedle, searchtext[leftsearch.end():])
+
+        if rightsearch is None:
+            break
+
+        out.append(searchtext[leftsearch.end():leftsearch.end()+rightsearch.start()])
+        index += leftsearch.end()+rightsearch.end()
+    return out
 
 
 # testing code
