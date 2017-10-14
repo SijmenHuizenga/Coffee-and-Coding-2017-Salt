@@ -1,7 +1,9 @@
 import re
 import urllib.request
+import socket
+socket.setdefaulttimeout(3)
 
-csv_link = './testhtml/csr_data_12.csv'
+csv_link = 'csr2'
 
 regex = re.compile(
     r'^(?:http|ftp)s?://'  # http:// or https://
@@ -13,35 +15,23 @@ regex = re.compile(
 
 
 def start():
-    with open(csv_link) as f:
-        content = f.readlines()
+    with open(csv_link) as csfile:
+        content = csfile.readlines()
 
         index = 1
         for line in content:
             url = "http://" + line.replace('"', "").strip()
             valid = regex.search(url)
+            opener = urllib.request.FancyURLopener({})
 
             if valid:
                 try:
-                    opener = urllib.request.FancyURLopener({})
-                    # url = "http://stackoverflow.com/"
-                    f = opener.open(url)
-                    content = f.read()
-
-                    writer = open('./data/'+str(index)+'.html', 'a+')
-                    try:
-                        a = content.decode()
-                        print(a)
-
-                        if a:
-                            writer.write(a)
-                    except Exception as e:
-                        print(e)
-
-                    index = index + 1
-                    # return content.decode('utf-8')
-                except Exception:
-                    raise FileNotFoundError
+                    print(url)
+                    opener.retrieve(url, './data/'+str(index)+'.html')
+                    print("done")
+                except Exception as e:
+                    print(e)
+                index = index + 1
 
 
 # writer = open('./data/test.html', 'a+')

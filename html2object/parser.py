@@ -172,11 +172,9 @@ def remove_tags(text):
 
 
 # testing code
-with open('example.html', 'r') as myfile:
-    data = myfile.read()
-(t, p) = parsehtml(data)
-print("TITLE: " + t)
-for line in p:
-    print(line)
-
-# parsehtml("123<!-- this is the app -->456<style>   </style>789")
+# with open('example.html', 'r') as myfile:
+#     data = myfile.read()
+# (t, p) = parsehtml(data)
+# print("TITLE: " + t)
+# for line in p:
+#     print(line)
