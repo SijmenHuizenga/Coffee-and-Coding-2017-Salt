@@ -1,4 +1,11 @@
 import re
+try:
+    # Python 2.6-2.7
+    from HTMLParser import HTMLParser
+except ImportError:
+    # Python 3
+    from html.parser import HTMLParser
+htmler = HTMLParser()
 
 
 def parsehtml(html):
@@ -15,9 +22,13 @@ def parsehtml(html):
     html = dolooped(remove_everything_between, html, "<style", "</style>")
 
     for p in find_tags_content(html, "p"):
+        if containstag(p, "div") or containstag(p, "input") or containstag(p, "textarea") or re.match(r"^[\d\s]*$", p):
+            continue
+        p = remove_tags(p).strip()
+        if " " not in p:
+            continue
+        p = htmler.unescape(p)  # to get rid of   &#8216;
         print(p)
-
-    print(html)
 
     return (
         "Title", ["paragraaf", "paragraaf"]
@@ -69,6 +80,33 @@ def find_tags_content(text, tagname):
         index += leftsearch.end()+rightsearch.end()
     return out
 
+
+def containstag(text, tagname):
+    return contains_fulltag(text, tagname) or contains_simpletag(text, tagname)
+
+
+def contains_simpletag(text, tagname):
+    regexr = re.compile("<"+tagname+"[^\/]+\/>")
+    return re.search(regexr, text) is not None
+
+
+def contains_fulltag(text, tagname):
+    leftneedle = re.compile("<"+tagname+"[^>]*>")
+    rightneedle = re.compile("<\/"+tagname+">")
+
+    leftsearch = re.search(leftneedle, text)
+    if leftsearch is None:
+        return False
+
+    rightsearch = re.search(rightneedle, text[leftsearch.end():])
+
+    if rightsearch is None:
+        return False
+    return True
+
+
+def remove_tags(text):
+    return re.sub(r"<[^>]+>", "", text)
 
 # testing code
 with open('example.html', 'r') as myfile:
