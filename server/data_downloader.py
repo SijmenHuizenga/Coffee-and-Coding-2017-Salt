@@ -1,12 +1,9 @@
 import re
 import urllib.request
-import socket
 import glob
 from html2object import parser
 
-socket.setdefaulttimeout(3)
-
-csv_link = 'csr2'
+csv_link = './testhtml/csr_data_12.csv'
 
 regex = re.compile(
     r'^(?:http|ftp)s?://'  # http:// or https://
@@ -18,56 +15,84 @@ regex = re.compile(
 
 
 def start():
-    with open(csv_link) as csfile:
-        content = csfile.readlines()
+    with open(csv_link) as f:
+        content = f.readlines()
 
         index = 1
         for line in content:
             url = "http://" + line.replace('"', "").strip()
             valid = regex.search(url)
-            opener = urllib.request.FancyURLopener({})
 
             if valid:
                 try:
-                    print(url)
-                    opener.retrieve(url, './data/'+str(index)+'.html')
-                    print("done")
-                except Exception as e:
-                    print(e)
-                index = index + 1
+                    opener = urllib.request.FancyURLopener({})
+                    # url = "http://stackoverflow.com/"
+                    fa = opener.open(url, timeout=3)
+                    content = fa.read()
+
+                    writer = open('./data/'+str(index)+'.html', 'a+')
+                    try:
+                        a = content.decode()
+                        print(a)
+
+                        if a:
+                            writer.write(a)
+                    except Exception as e:
+                        print(e)
+
+                    index = index + 1
+                    # return content.decode('utf-8')
+                except Exception:
+                    raise FileNotFoundError
 
 
-def read_html():
-    html_files = glob.glob("./data/*.html")
-    index = 1
+def read_html(bases, base_folder):
+    for base in bases:
+        html_files = glob.glob(base)
+        index = 1
 
-    for path in html_files:
-        file = open(path)
-        read = file.read()
-        try:
-            parsed = parser.parsehtml(read)
-        except ValueError as e:
-            print(e)
-            continue
+        for path in html_files:
+            file = open(path, errors="ignore")
+            try:
+                read = file.read()
+            except UnicodeDecodeError as e:
+                print(e)
+                continue
 
-        if parsed:
-            string = ""
-            # str(parsed[0])
-            for s in parsed[1]:
-                string += s
+            try:
+                parsed = parser.parsehtml(read)
+            except ValueError as e:
+                print(e)
+                continue
 
-            if string is not "" or string is not "NoneNone":
-                writer = open('./text/' + str(index) + '.txt', 'a+')
-                writer.write(string)
-            else:
-                print("Empty index " + str(index))
-        index = index + 1
+            if parsed:
+                title = parsed[0]
 
-        # except Exception as e:
-        #     print('something went wrong')
+                if title:
+                    string = title + " "
+                else:
+                    string = ""
+                # print(parsed[0])
+                for s in parsed[1]:
+                    string += s
+
+                if string is not "" or string is not "NoneNone":
+                    writer = open(base_folder + str(index) + '.txt', 'a+', errors="ignore")
+                    try:
+                        writer.write(string)
+                    except UnicodeEncodeError as e:
+                        print(e)
+                        continue
+                else:
+                    print("Empty index " + str(index))
+            index = index + 1
+
+            # except Exception as e:
+            #     print('something went wrong')
 
 
-read_html()
+# read_html(["./data/html-ncsr1/*.html", "./data/html-ncsr2/*.html"], './text/ncsr/')
+# read_html(["./data/html-csr1/*.html", "./data/html-csr2/*.html"], './text/csr/')
 
 # writer = open('./data/test.html', 'a+')
 # writer.write("wri")
