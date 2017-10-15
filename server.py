@@ -4,6 +4,7 @@ import urllib.request
 import re
 import htmlcleaner
 from custom_errors import *
+import CSR
 
 app = Flask(__name__)
 CORS(app)
@@ -35,13 +36,21 @@ def analyzeurl(url):
 
     try:
         parsed = htmlcleaner.parsehtml(html)
-        return jsonify(parsed)
+        point_string = ' '.join(parsed[1])
+        points = CSR.csr(point_string) + CSR.csr(parsed[0])
+        print(points)
+        return response_to_json(parsed, points)
     except CustomFrameError as e:
         print("going to " + e.get_url())
         return analyzeurl(e.get_url())
     except Exception as e:
         print(e)
         return "500", 500
+
+
+def response_to_json(parsed, points):
+    # return jsonify(parsed, points)
+    return jsonify({'points': points, 'lines': parsed})
 
 
 def get_html_as_string(url):

@@ -16,12 +16,12 @@ key_benefits_points = 2
 
 
 def csr(line):
-    line.split()
+    line = line.split()
     points = 0
     for i in range(len(line)):
-        for j in list_of_lists:
-            for k in j:
-                if k == line[i]:
+        for ls in list_of_lists:
+            for word in ls:
+                if word == line[i]:
                     if list_of_lists[0]:
                         points = points + main_words_points
                     elif list_of_lists[1]:
