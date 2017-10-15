@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import urllib.request
 import re
 import htmlcleaner
+from custom_errors import *
 
 app = Flask(__name__)
 
@@ -17,16 +18,28 @@ regex = re.compile(
 @app.route('/analyse')
 def analyse():
     url = request.args.get('url', default="")
+    return analyzeurl(url)
+
+
+def analyzeurl(url):
     valid_url = regex.search(url)
-    if url and valid_url:
-        try:
-            html = get_html_as_string(url)
-        except FileNotFoundError:
-            return "Url ont found", 404
+    if not (url and valid_url):
+        return "400", 400
+
+    try:
+        html = get_html_as_string(url)
+    except FileNotFoundError:
+        return "Url ont found", 404
+
+    try:
         parsed = htmlcleaner.parsehtml(html)
         return jsonify(parsed)
-    else:
-        return "400", 400
+    except CustomFrameError as e:
+        print("going to " + e.get_url())
+        return analyzeurl(e.get_url())
+    except Exception as e:
+        print(e)
+        return "500", 500
 
 
 def get_html_as_string(url):

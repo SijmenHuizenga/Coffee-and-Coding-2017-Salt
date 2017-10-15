@@ -1,4 +1,5 @@
 import re
+from custom_errors import *
 
 with open('englishwords') as wordfile:
     mostusedwords = wordfile.readlines()
@@ -14,9 +15,14 @@ htmler = HTMLParser()
 
 def parsehtml(html):
     try:
-        htmlbody = find_body(html)  # find the body
+        htmlbody = find_body(html)
     except ValueError as e:
-        raise ValueError(e)
+        if not (containstag(html, "frame") or containstag(html, "iframe")):
+            raise e
+        src = re.search(r"src=\"([^\"]+)\"", html)
+        if not src:
+            raise e
+        raise CustomFrameError(src.group(1))
 
     cleanedbody = remove_nontext_arias(htmlbody)  # remove things like scripts and style things
     tags = find_usefull_tags(cleanedbody)  # gives (name, props, body)
