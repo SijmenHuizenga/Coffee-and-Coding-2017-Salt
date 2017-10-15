@@ -1,6 +1,6 @@
 import re
 
-with open('englishwords.txt') as wordfile:
+with open('englishwords') as wordfile:
     mostusedwords = wordfile.readlines()
 
 try:
@@ -26,13 +26,16 @@ def parsehtml(html):
 
     for tag in tags:
         if title is None:
-            if tag[0] == "p":
+            if tag[0] == "p" or tag[0] == "span":
                 continue
             if tag[0] == "h1" or tag[0] == "h2":
                 title = tag[2]
                 continue
-        if len(paragraphs) != 0 and (tag[0] == "h1" or tag[0] == "h2" or tag[0] == "h3"):
+        if len(paragraphs) != 0 and (tag[0] == "h1" or tag[0] == "h2"):
             break
+        if tag[2].startswith("copyright"):
+            break
+        # paragraphs.append(tag[0] + ":" + tag[2])
         paragraphs.append(tag[2])
     return title, paragraphs
 
@@ -51,31 +54,35 @@ def remove_nontext_arias(html):
     html = dolooped(remove_everything_between, html, "<!--", "-->")
     html = dolooped(remove_everything_between, html, "<script", "</script>")
     html = dolooped(remove_everything_between, html, "<style", "</style>")
+    html = dolooped(remove_everything_between, html, "<svg", "</svg>")
+    html = dolooped(remove_everything_between, html, "<footer", "</footer>")
     return html
 
 
 def find_usefull_tags(html):
-    strictmode = len(find_tags(html, "h1")) > 1
+    # strictmode = len(find_tags(html, "h1")) > 1
 
     out = []
-    for tag in find_tags(html, ["p", "h1", "h2", "h3", "h4", "h5", "h6"]):
+    for tag in find_tags(html, ["p", "span", "h1", "h2", "h3", "h4", "h5", "h6"]):
         tagname = tag[0]
         tagprops = tag[1]
         tagbody = tag[2]
-        if tagname == "p" and (
+        if (tagname == "p" or tagname == "span") and (
                             containstag(tagbody, "div")
                         or containstag(tagbody, "input")
                     or containstag(tagbody, "textarea")
                 or re.match(r"^[\d\s]*$", tagbody)
         ):
             continue
+        if len(find_tags(tagbody, "a")) >= 3:
+            continue
 
         tagbody = re.sub(r" +", " ", remove_tags(tagbody).strip().lower())
         if " " not in tagbody:
             continue
 
-        if strictmode and not contains_english_word(tagbody):
-            continue
+        # if strictmode and not contains_english_word(tagbody):
+        #     continue
 
         out.append((tagname, tagprops, htmler.unescape(tagbody)))
     return out
@@ -129,13 +136,13 @@ def find_tags(text, tags):
                 continue
 
             rightsearch = re.search(rightneedle, searchtext[leftsearch.end():])
-
             if rightsearch is None:
                 continue
+
             searches.append((tagname, leftsearch, rightsearch))
         if len(searches) == 0:
             break
-        searches.sort(key= lambda x: x[1].start())
+        searches.sort(key=lambda x: x[1].start())
 
         tagname = searches[0][0]
         leftsearch = searches[0][1]
