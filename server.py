@@ -4,6 +4,7 @@ import urllib.request
 import re
 import htmlcleaner
 from custom_errors import *
+import traceback
 
 app = Flask(__name__)
 CORS(app)
@@ -41,6 +42,7 @@ def analyzeurl(url):
         return analyzeurl(e.get_url())
     except Exception as e:
         print(e)
+        traceback.print_exc()
         return "500", 500
 
 

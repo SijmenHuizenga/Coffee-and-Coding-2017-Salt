@@ -40,23 +40,31 @@ def parsehtml(html):
     cleanedbody = remove_nontext_arias(htmlbody)  # remove things like scripts and style things
     tags = find_usefull_tags(cleanedbody)  # gives (name, props, body)
     ast = make_ast(tags)
+    ast = [x for x in ast if isvalidastpart(x)]
+
     printast("", ast)
+
+    for level0node in ast:
+        for level1node in level0node.tagchilds:
+            if not isvalidastpart(level1node):
+                level1node.tagname = ""
 
     paragraphs = []
 
     for astnode in ast:
-        if not ast_contains_p(astnode.tagchilds):
-            continue
-        if ast_count_p_span_morethan_5_words(astnode.tagchilds) <= 2:
-            continue
-        if count_p_span_words(astnode.tagchilds) > 40:
-            paragraphs.extend(ast2paragraphs(astnode.tagchilds))
-            paragraphs.extend("\n")
+        paragraphs.extend(ast2paragraphs(astnode.tagchilds))
+        paragraphs.extend("\n")
 
     ast.sort(key=lambda x: count_p_span_words(x.tagchilds), reverse=True)
     title = ast[0].tagbody
 
-    return title, paragraphs
+    return title, paragraphs[:-1]
+
+
+def isvalidastpart(node):
+    if node.tagname in ["p", "span"]:
+        return True
+    return ast_contains_p(node.tagchilds) and ast_count_p_span_morethan_5_words(node.tagchilds) > 2 and count_p_span_words(node.tagchilds) > 40
 
 
 def make_ast(tags):
@@ -95,6 +103,8 @@ def printast(prefix, ast):
 def ast2paragraphs(ast):
     out = []
     for astnode in ast:
+        if astnode.tagname == "":
+            continue
         out.append(astnode.tagbody)
         out.extend(ast2paragraphs(astnode.tagchilds))
     return out
