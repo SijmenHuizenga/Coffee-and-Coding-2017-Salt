@@ -12,6 +12,20 @@ except ImportError:
     from html.parser import HTMLParser
 htmler = HTMLParser()
 
+
+class AstNode:
+    tagname = None
+    tagprops = None
+    tagbody = None
+    tagchilds = []
+
+    def __init__(self, tagname, tagprops, tagbody, tagchilds):
+        self.tagname = tagname
+        self.tagprops = tagprops
+        self.tagbody = tagbody
+        self.tagchilds = tagchilds
+
+
 def parsehtml(html):
     try:
         htmlbody = find_body(html)
@@ -26,29 +40,37 @@ def parsehtml(html):
     cleanedbody = remove_nontext_arias(htmlbody)  # remove things like scripts and style things
     tags = find_usefull_tags(cleanedbody)  # gives (name, props, body)
     ast = make_ast(tags)
+    ast = [x for x in ast if isvalidastpart(x)]
+
     printast("", ast)
+
+    for level0node in ast:
+        for level1node in level0node.tagchilds:
+            if not isvalidastpart(level1node):
+                level1node.tagname = ""
 
     paragraphs = []
 
-    for (tagname, tagprops, tagbody, tagchilds) in ast:
-        if not ast_contains_p(tagchilds):
-            continue
-        if ast_count_p_span_morethan_5_words(tagchilds) <= 2:
-            continue
-        if count_p_span_words(tagchilds) > 40:
-            paragraphs.extend(ast2paragraphs(tagchilds))
-            paragraphs.extend("\n")
+    for astnode in ast:
+        paragraphs.extend(ast2paragraphs(astnode.tagchilds))
+        paragraphs.extend("\n")
 
-    ast.sort(key=lambda x: count_p_span_words(x[3]), reverse=True)
-    title = ast[0][2]
+    ast.sort(key=lambda x: count_p_span_words(x.tagchilds), reverse=True)
+    title = ast[0].tagbody
 
-    return title, paragraphs
+    return title, paragraphs[:-1]
+
+
+def isvalidastpart(node):
+    if node.tagname in ["p", "span"]:
+        return True
+    return ast_contains_p(node.tagchilds) and ast_count_p_span_morethan_5_words(node.tagchilds) > 2 and count_p_span_words(node.tagchilds) > 40
 
 
 def make_ast(tags):
     depthdict = {"h1": 1, "h2": 2, "h3": 3, "h4": 4, "h5": 5, "h6": 5, "p": 7, "span": 7}
 
-    leveldict = {0: (None, None, None, []), 1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None}
+    leveldict = {0: AstNode(None, None, None, []), 1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None}
 
     for (tagname, tagprops, tagbody) in tags:
         taglevel = depthdict[tagname]
@@ -60,58 +82,60 @@ def make_ast(tags):
             parentlevel -= 1
             if leveldict[parentlevel] is not None:
                 break
-        newasttag = (tagname, tagprops, tagbody, [])
+        newasttag = AstNode(tagname, tagprops, tagbody, [])
         if leveldict[parentlevel] is None:
             leveldict[parentlevel] = newasttag
             continue
-        leveldict[parentlevel][3].append(newasttag)  # add to parent
+        leveldict[parentlevel].tagchilds.append(newasttag)  # add to parent
         leveldict[parentlevel+1] = newasttag
         for i in range(parentlevel+2, 8):
             leveldict[i] = None
 
-    return leveldict[0][3]
+    return leveldict[0].tagchilds
 
 
 def printast(prefix, ast):
-    for (tagname, tagprops, tagbody, tagchilds) in ast:
-        print(prefix + tagname + ":" + tagbody)
-        printast(prefix+" -> ", tagchilds)
+    for astnode in ast:
+        print(prefix + astnode.tagname + ":" + astnode.tagbody)
+        printast(prefix+" -> ", astnode.tagchilds)
 
 
 def ast2paragraphs(ast):
     out = []
-    for (tagname, tagprops, tagbody, tagchilds) in ast:
-        out.append(tagbody)
-        out.extend(ast2paragraphs(tagchilds))
+    for astnode in ast:
+        if astnode.tagname == "":
+            continue
+        out.append(astnode.tagbody)
+        out.extend(ast2paragraphs(astnode.tagchilds))
     return out
 
 
 def count_p_span_words(ast):
     total = 0
-    for (tagname, tagprops, tagbody, tagchilds) in ast:
-        total += count_p_span_words(tagchilds)
-        if not (tagname == "span" or tagname == "p"):
+    for astnode in ast:
+        total += count_p_span_words(astnode.tagchilds)
+        if not (astnode.tagname == "span" or astnode.tagname == "p"):
             continue
-        total += len(tagbody.split())
+        total += len(astnode.tagbody.split())
     return total
 
 
 def ast_contains_p(ast):
-    for (tagname, tagprops, tagbody, tagchilds) in ast:
-        if tagname == "span" or tagname == "p":
+    for node in ast:
+        if node.tagname == "span" or node.tagname == "p":
             return True
-        if ast_contains_p(tagchilds):
+        if ast_contains_p(node.tagchilds):
             return True
     return False
 
 
 def ast_count_p_span_morethan_5_words(ast):
     total = 0
-    for (tagname, tagprops, tagbody, tagchilds) in ast:
-        if tagname == "span" or tagname == "p":
-            if len(tagbody.split()) > 5:
+    for node in ast:
+        if node.tagname == "span" or node.tagname == "p":
+            if len(node.tagbody.split()) > 5:
                 total += 1
-        total += ast_count_p_span_morethan_5_words(tagchilds)
+        total += ast_count_p_span_morethan_5_words(node.tagchilds)
     return total
 
 
