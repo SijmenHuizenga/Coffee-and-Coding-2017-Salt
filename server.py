@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import urllib.request
 import re
-from html2object import parser
+import htmlcleaner
 
 app = Flask(__name__)
 
@@ -23,7 +23,7 @@ def analyse():
             html = get_html_as_string(url)
         except FileNotFoundError:
             return "Url ont found", 404
-        parsed = parser.parsehtml(html)
+        parsed = htmlcleaner.parsehtml(html)
         return jsonify(parsed)
     else:
         return "400", 400
@@ -32,8 +32,6 @@ def analyse():
 def get_html_as_string(url):
     try:
         opener = urllib.request.FancyURLopener({})
-        # url = "http://stackoverflow.com/"
-        url = url
         f = opener.open(url)
         content = f.read()
         return content.decode('utf-8')

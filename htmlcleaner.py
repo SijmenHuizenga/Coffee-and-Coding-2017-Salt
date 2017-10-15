@@ -1,7 +1,5 @@
 import re
 
-mostusedwords = []
-
 with open('englishwords') as wordfile:
     mostusedwords = wordfile.readlines()
 
@@ -178,12 +176,3 @@ def contains_fulltag(text, tagname):
 
 def remove_tags(text):
     return re.sub(r"<[^>]+>", "", text)
-
-
-# testing code
-# with open('example.html', 'r') as myfile:
-#     data = myfile.read()
-# (t, p) = parsehtml(data)
-# print("TITLE: " + t)
-# for line in p:
-#     print(line)
