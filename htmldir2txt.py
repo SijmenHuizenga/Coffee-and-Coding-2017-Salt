@@ -1,11 +1,15 @@
 import glob
 import htmlcleaner
+import custom_errors
 
-htmldirs = ["./data/html-ncsr1/*.html", "./data/html-ncsr2/*.html"]
-# htmldirs = ["./data/html-csr1/*.html", "./data/html-csr2/*.html"]
+csr = True
 
-outputdir = './text/ncsr/'
-# outputdir = './text/csr/'
+if not csr:
+    htmldirs = ["./server/data/html-ncsr1/*.html", "./server/data/html-ncsr2/*.html"]
+    outputdir = './server/text/ncsr/'
+else:
+    htmldirs = ["./server/data/html-csr1/*.html", "./server/data/html-csr2/*.html"]
+    outputdir = './server/text/csr/'
 
 
 for htmldir in htmldirs:
@@ -22,11 +26,11 @@ for htmldir in htmldirs:
 
         try:
             parsed = htmlcleaner.parsehtml(read)
-        except ValueError as e:
+        except Exception as e:
             print(e)
             continue
 
-        if not parsed:
+        if parsed:
             title = parsed[0]
 
             if title:
@@ -37,7 +41,7 @@ for htmldir in htmldirs:
                 string += s
 
             if string is not "" or string is not "NoneNone":
-                writer = open(htmldir + str(index) + '.txt', 'a+', errors="ignore")
+                writer = open(outputdir + str(index) + '.txt', 'a+', errors="ignore")
                 try:
                     writer.write(string)
                 except UnicodeEncodeError as e:
