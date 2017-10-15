@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import urllib.request
 import re
 import htmlcleaner
 from custom_errors import *
 
 app = Flask(__name__)
+CORS(app)
 
 regex = re.compile(
     r'^(?:http|ftp)s?://'  # http:// or https://
