@@ -5,7 +5,7 @@ import re
 import htmlcleaner
 from custom_errors import *
 import traceback
-import CSR
+import counter as CSR
 
 app = Flask(__name__)
 CORS(app)
@@ -38,8 +38,7 @@ def analyzeurl(url):
     try:
         parsed = htmlcleaner.parsehtml(html)
         point_string = ' '.join(parsed[1])
-        points = CSR.csr(point_string) + CSR.csr(parsed[0])
-        return jsonify({'points': points, 'lines': parsed})
+        return jsonify({'csr': CSR.dostuff(point_string), 'lines': parsed})
     except CustomFrameError as e:
         print("going to " + e.get_url())
         return analyzeurl(e.get_url())
