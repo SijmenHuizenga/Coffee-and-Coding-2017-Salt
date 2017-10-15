@@ -39,7 +39,6 @@ def csr(line):
 def dostuff(test_text):
     diction = {}
     path1 = "./csr-txt"
-    path2 = "./non-csr-txt"
     counter = 0
     mostusedwords = ["the", "be", "to", "of", "and", "a", "in", "that", "have", "I", "it", "for", "not", "on", "with",
                      "he", "as", "you", "do", "at", "this", "but",
@@ -64,6 +63,7 @@ def dostuff(test_text):
                         diction[word] += 1
                     else:
                         diction[word] = 1
+        file_.close()
 
     lists = sorted(diction.items(), key=itemgetter(1))
     max_count = lists[len(lists) - 1][1]
@@ -123,3 +123,4 @@ def dostuff(test_text):
     if positive > 4 / 5 * total:
         CSR = True
     return CSR
+
