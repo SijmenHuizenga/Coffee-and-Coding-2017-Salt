@@ -2,7 +2,7 @@ import re
 
 mostusedwords = []
 
-with open('englishwords') as wordfile:
+with open('englishwords.txt') as wordfile:
     mostusedwords = wordfile.readlines()
 
 try:
