@@ -12,7 +12,6 @@ except ImportError:
     from html.parser import HTMLParser
 htmler = HTMLParser()
 
-
 def parsehtml(html):
     try:
         htmlbody = find_body(html)
@@ -26,24 +25,94 @@ def parsehtml(html):
 
     cleanedbody = remove_nontext_arias(htmlbody)  # remove things like scripts and style things
     tags = find_usefull_tags(cleanedbody)  # gives (name, props, body)
+    ast = make_ast(tags)
+    printast("", ast)
 
-    title = None
     paragraphs = []
 
-    for tag in tags:
-        if title is None:
-            if tag[0] == "p" or tag[0] == "span":
-                continue
-            if tag[0] == "h1" or tag[0] == "h2":
-                title = tag[2]
-                continue
-        if len(paragraphs) != 0 and (tag[0] == "h1" or tag[0] == "h2"):
-            break
-        if tag[2].startswith("copyright"):
-            break
-        # paragraphs.append(tag[0] + ":" + tag[2])
-        paragraphs.append(tag[2])
+    for (tagname, tagprops, tagbody, tagchilds) in ast:
+        if not ast_contains_p(tagchilds):
+            continue
+        if ast_count_p_span_morethan_5_words(tagchilds) <= 2:
+            continue
+        if count_p_span_words(tagchilds) > 40:
+            paragraphs.extend(ast2paragraphs(tagchilds))
+            paragraphs.extend("\n")
+
+    ast.sort(key=lambda x: count_p_span_words(x[3]), reverse=True)
+    title = ast[0][2]
+
     return title, paragraphs
+
+
+def make_ast(tags):
+    depthdict = {"h1": 1, "h2": 2, "h3": 3, "h4": 4, "h5": 5, "h6": 5, "p": 7, "span": 7}
+
+    leveldict = {0: (None, None, None, []), 1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None}
+
+    for (tagname, tagprops, tagbody) in tags:
+        taglevel = depthdict[tagname]
+        parentlevel = taglevel
+
+        while True:
+            if parentlevel == 0:
+                break
+            parentlevel -= 1
+            if leveldict[parentlevel] is not None:
+                break
+        newasttag = (tagname, tagprops, tagbody, [])
+        if leveldict[parentlevel] is None:
+            leveldict[parentlevel] = newasttag
+            continue
+        leveldict[parentlevel][3].append(newasttag)  # add to parent
+        leveldict[parentlevel+1] = newasttag
+        for i in range(parentlevel+2, 8):
+            leveldict[i] = None
+
+    return leveldict[0][3]
+
+
+def printast(prefix, ast):
+    for (tagname, tagprops, tagbody, tagchilds) in ast:
+        print(prefix + tagname + ":" + tagbody)
+        printast(prefix+" -> ", tagchilds)
+
+
+def ast2paragraphs(ast):
+    out = []
+    for (tagname, tagprops, tagbody, tagchilds) in ast:
+        out.append(tagbody)
+        out.extend(ast2paragraphs(tagchilds))
+    return out
+
+
+def count_p_span_words(ast):
+    total = 0
+    for (tagname, tagprops, tagbody, tagchilds) in ast:
+        total += count_p_span_words(tagchilds)
+        if not (tagname == "span" or tagname == "p"):
+            continue
+        total += len(tagbody.split())
+    return total
+
+
+def ast_contains_p(ast):
+    for (tagname, tagprops, tagbody, tagchilds) in ast:
+        if tagname == "span" or tagname == "p":
+            return True
+        if ast_contains_p(tagchilds):
+            return True
+    return False
+
+
+def ast_count_p_span_morethan_5_words(ast):
+    total = 0
+    for (tagname, tagprops, tagbody, tagchilds) in ast:
+        if tagname == "span" or tagname == "p":
+            if len(tagbody.split()) > 5:
+                total += 1
+        total += ast_count_p_span_morethan_5_words(tagchilds)
+    return total
 
 
 def find_body(html):
