@@ -117,3 +117,4 @@ def dostuff(test_text):
 	if positive > 4/5 *total:
 		CSR = True
 	print("CSR = ", CSR)
+	return CSR
