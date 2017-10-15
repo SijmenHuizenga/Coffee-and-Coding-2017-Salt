@@ -1,6 +1,9 @@
 import re
 
-mostusedwords = ["the", "be", "to", "of", "and", "a", "in", "that", "have", "I", "it", "for", "not", "on", "with", "he", "as", "you", "do", "at", "this", "but", "his", "by", "from", "they", "we", "say", "her", "she", "or", "an", "will", "my", "one", "all", "would", "there", "their", "what", "so", "up", "out", "if", "about", "who", "get", "which", "go", "me", "when", "make", "can", "like", "time", "no", "just", "him", "know", "take", "people", "into", "year", "your", "good", "some", "could", "them", "see", "other", "than", "then", "now", "look", "only", "come", "its", "over", "think", "also", "back", "after", "use", "two", "how", "our", "work", "first", "well", "way", "even", "new", "want", "because", "any", "these", "give", "day", "most", "us"]
+mostusedwords = []
+
+with open('englishwords') as wordfile:
+    mostusedwords = wordfile.readlines()
 
 try:
     # Python 2.6-2.7
@@ -54,8 +57,10 @@ def remove_nontext_arias(html):
 
 
 def find_usefull_tags(html):
+    strictmode = len(find_tags(html, "h1")) > 1
+
     out = []
-    for tag in find_tags(html, ["p", "h1", "h2", "h3", "h4"]):
+    for tag in find_tags(html, ["p", "h1", "h2", "h3", "h4", "h5", "h6"]):
         tagname = tag[0]
         tagprops = tag[1]
         tagbody = tag[2]
@@ -67,20 +72,20 @@ def find_usefull_tags(html):
         ):
             continue
 
-        tagbody = remove_tags(tagbody).strip().lower()
+        tagbody = re.sub(r" +", " ", remove_tags(tagbody).strip().lower())
         if " " not in tagbody:
             continue
 
-        if not contains_usefull_word(tagbody):
+        if strictmode and not contains_english_word(tagbody):
             continue
 
         out.append((tagname, tagprops, htmler.unescape(tagbody)))
     return out
 
 
-def contains_usefull_word(text):
+def contains_english_word(text):
     for w in mostusedwords:
-        if " " + w + " " in text:
+        if " " + w + " " in text or text.startswith(w + " ") or text.endswith(" " + w):
             return True
     return False
 
